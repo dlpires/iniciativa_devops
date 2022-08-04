@@ -1,0 +1,100 @@
+## CREATE K3D: k3d cluster create meucluster -p "80:30000" --servers 3 --agents 3
+# Deployment do Postgree
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  
+  template:
+    metadata:
+      labels:
+        app: postgres
+    
+    spec:
+      containers:
+      - name: postgres
+  
+        image: postgres:14.3
+        ports:
+          - containerPort: 5432
+        env:
+          - name: POSTGRES_PASSWORD
+            value: "Abc@123"
+          - name: POSTGRES_USER
+            value: "user"
+          - name: POSTGRES_DB
+            value: "kubenews"
+        resources:
+          limits:
+            memory: "254Mi"
+            cpu: "500m"
+
+## Service Postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+
+## Deployment da Aplicação
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubenews
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: kubenews
+  template:
+    metadata:
+      labels:
+        app: kubenews
+    spec:
+      containers:
+      - name: kubenews
+        image: dlpires300/kube-news:v1
+        env:
+        - name: DB_PASSWORD
+          value: "Abc@123"
+        - name: DB_USERNAME
+          value: "user"
+        - name: DB_DATABASE
+          value: "kubenews"
+        - name: DB_HOST
+          value: "postgres"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+---
+## Service App
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubenews
+spec:
+  selector:
+    app: kubenews
+  ports:
+  - port: 80
+    targetPort: 8080
+    nodePort: 30000
+  type: NodePort
+
+
+
